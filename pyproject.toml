@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "autobackend"
+version = "0.1.0"
+description = "AI backend generator SaaS"
+authors = ["you"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "*"
+uvicorn = "*"
+sqlalchemy = "*"
+psycopg2-binary = "*"
+celery = "*"
+redis = "*"
+pydantic = "*"
+python-jose = "*"
+openai = "*"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "*"
+alembic = "*"
