@@ -2,26 +2,92 @@ version: "3.9"
 
 services:
 
+  # =========================
+  # NGINX PROXY MANAGER
+  # =========================
+  npm:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx_proxy_manager
+    restart: always
+    ports:
+      - "80:80" # HTTP
+      - "81:81" # Admin UI
+      - "443:443" # HTTPS
+    volumes:
+      - npm_data:/data
+      - npm_letsencrypt:/etc/letsencrypt
+    networks:
+      - backend
+
+  # =========================
+  # API (NO PUBLIC PORT)
+  # =========================
   api:
     image: ghcr.io/oasiconsult/autobackend:latest
-    ports:
-      - "8000:8000"
+    container_name: autobackend_api
+    restart: always
     depends_on:
       - db
       - redis
+    environment:
+      - DATABASE_URL=postgresql://user:pass@db:5432/autobackend
+      - REDIS_URL=redis://redis:6379/0
+    networks:
+      - backend
 
+  # =========================
+  # WORKER
+  # =========================
   worker:
     image: ghcr.io/oasiconsult/autobackend:latest
+    container_name: autobackend_worker
     command: poetry run celery -A app.worker.celery_app.celery worker --loglevel=info
+    restart: always
     depends_on:
       - redis
+      - db
+    environment:
+      - DATABASE_URL=postgresql://user:pass@db:5432/autobackend
+      - REDIS_URL=redis://redis:6379/0
+    networks:
+      - backend
 
+  # =========================
+  # DATABASE
+  # =========================
   db:
     image: postgres:15
+    container_name: autobackend_db
+    restart: always
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: pass
       POSTGRES_DB: autobackend
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
 
+  # =========================
+  # REDIS
+  # =========================
   redis:
     image: redis:7
+    container_name: autobackend_redis
+    restart: always
+    networks:
+      - backend
+
+# =========================
+# VOLUMES
+# =========================
+volumes:
+  postgres_data:
+  npm_data:
+  npm_letsencrypt:
+
+    # =========================
+    # NETWORK
+    # =========================
+networks:
+  backend:
